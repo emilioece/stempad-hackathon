@@ -29,10 +29,10 @@ export async function GET(request: Request) {
     await ensureUser(session.user.sub, session.user.email);
     
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const userId = searchParams.get('userId') || session.user.sub;
 
     const notes = await prisma.note.findMany({
-      where: { userId },
+      where: { userId: userId as string },
       orderBy: { createdAt: 'desc' },
     });
 

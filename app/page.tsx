@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { PlayIcon, StopIcon, MicrophoneIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, StopIcon, MicrophoneIcon, PencilIcon, CheckIcon, TrashIcon } from '@heroicons/react/24/solid';
 import ReactMarkdown from 'react-markdown';
 import Navbar from './components/Navbar';
 import { useUser } from '@auth0/nextjs-auth0/client';
@@ -199,6 +199,25 @@ export default function Home() {
     }
   };
 
+  const deleteNote = async (noteId: string) => {
+    if (confirm('Are you sure you want to delete this note?')) {
+      try {
+        const response = await fetch(`/api/notes?noteId=${noteId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setSavedNotes(prev => prev.filter(note => note.id !== noteId));
+          if (selectedNote?.id === noteId) {
+            setSelectedNote(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     return () => {
       stopAudioAnalysis();
@@ -295,9 +314,8 @@ export default function Home() {
                 const title = titleMatch ? titleMatch[1] : 'Untitled Note';
                 
                 return (
-                  <button
+                  <div
                     key={note.id}
-                    onClick={() => setSelectedNote(note)}
                     className={`w-full text-left p-3 rounded-lg border transition-all ${
                       selectedNote?.id === note.id
                         ? 'border-blue-500 bg-blue-50'
@@ -305,12 +323,27 @@ export default function Home() {
                     }`}
                   >
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-700">{title}</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(note.timestamp).toLocaleString()}
-                      </span>
+                      <button
+                        onClick={() => setSelectedNote(note)}
+                        className="flex-1 text-left"
+                      >
+                        <span className="text-gray-700">{title}</span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          {new Date(note.timestamp).toLocaleString()}
+                        </span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNote(note.id);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100"
+                        title="Delete note"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

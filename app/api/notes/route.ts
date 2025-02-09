@@ -59,7 +59,6 @@ export async function POST(request: Request) {
         notes: data.notes,
         userId: session.user.sub,
         title: data.title || 'Untitled Note',
-        timestamp: new Date(data.timestamp),
       },
     });
 
@@ -67,5 +66,42 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating note:', error);
     return NextResponse.json({ error: 'Failed to create note' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const noteId = searchParams.get('noteId');
+    
+    if (!noteId) {
+      return NextResponse.json({ error: 'Note ID is required' }, { status: 400 });
+    }
+
+    // Verify the note belongs to the user
+    const note = await prisma.note.findFirst({
+      where: { 
+        id: noteId,
+        userId: session.user.sub 
+      }
+    });
+
+    if (!note) {
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 });
+    }
+
+    await prisma.note.delete({
+      where: { id: noteId }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    return NextResponse.json({ error: 'Failed to delete note' }, { status: 500 });
   }
 } 

@@ -59,6 +59,7 @@ export async function POST(request: Request) {
         notes: data.notes,
         userId: session.user.sub,
         title: data.title || 'Untitled Note',
+        timestamp: new Date(data.timestamp),
       },
     });
 

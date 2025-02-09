@@ -87,6 +87,12 @@ export default function Home() {
   };
 
   const startRecording = async () => {
+    if (!user) {
+      // Redirect to Auth0 login if user is not authenticated
+      window.location.href = '/api/auth/login';
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.continuous = true;
@@ -212,7 +218,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar isSignedIn={false} />
+      <Navbar />
       
       <div className="min-h-screen bg-gray-50 pb-32">
         {/* Two Column Layout */}
@@ -322,6 +328,7 @@ export default function Home() {
                     ? 'bg-red-500 hover:bg-red-600' 
                     : 'bg-blue-500 hover:bg-blue-600'
                   } text-white`}
+                title={user ? "Start Recording" : "Sign in to start recording"}
               >
                 {isRecording ? (
                   <StopIcon className="w-7 h-7 text-white" />
@@ -333,13 +340,13 @@ export default function Home() {
               <div className="w-64 h-10 bg-gray-200 rounded-full overflow-hidden flex items-center px-3">
                 {isRecording ? (
                   <div className="flex items-end gap-[2px] h-full w-full">
-                    {getAudioBars(audioLevel).map((height, i) => (
+                    {Array.from({ length: 32 }, (_, i) => (
                       <div
                         key={i}
                         className="flex-1 bg-blue-500 transition-all duration-75"
                         style={{
-                          height: `${height}%`,
-                          opacity: height > 0 ? 0.3 + (height / 100) * 0.7 : 0.2
+                          height: `${getAudioBars(audioLevel)[i]}%`,
+                          opacity: getAudioBars(audioLevel)[i] > 0 ? 0.3 + (getAudioBars(audioLevel)[i] / 100) * 0.7 : 0.2
                         }}
                       />
                     ))}

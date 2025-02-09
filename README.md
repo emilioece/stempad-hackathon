@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DeepSearch
 
-## Getting Started
+## Overview
 
-First, run the development server:
+DeepSearch is an innovative application designed to transform your office hours into structured notes. It leverages advanced audio recording and AI-powered transcription to ensure you never miss important details from your meetings again.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Real-time Recording**: Capture every detail with our advanced audio recording system.
+- **AI-Powered Notes**: Automatically generate structured, markdown-formatted notes.
+- **Easy Organization**: Edit, organize, and access your notes from anywhere.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How It Works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Real-time Recording**: DeepSearch uses your device's microphone to record audio in real-time. The audio is then processed to ensure clarity and accuracy.
+2. **AI-Powered Transcription**: Our AI algorithms transcribe the recorded audio into text, generating structured notes that are easy to read and understand.
+3. **Note Management**: Users can edit, organize, and access their notes through a user-friendly interface.
 
-## Learn More
+## Technology Stack
 
-To learn more about Next.js, take a look at the following resources:
+DeepSearch is built using the following technologies:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Frontend**:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+  - React: A JavaScript library for building user interfaces.
+  - Tailwind CSS: A utility-first CSS framework for styling.
+  - Next.js: A React framework for server-side rendering and static site generation.
 
-## Deploy on Vercel
+- **Backend**:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+  - Node.js: A JavaScript runtime for building scalable network applications.
+  - Auth0: A platform for authentication and authorization for user accounts.
+  - MySQL: Database platform to store notes across user accounts.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **APIs**:
+  - Web Speech API: For real-time speech recognition and transcription.

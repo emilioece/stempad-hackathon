@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { PlayIcon, StopIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
+import { PlayIcon, StopIcon, MicrophoneIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/solid';
+import ReactMarkdown from 'react-markdown';
 
 // Add these type declarations at the top of the file
 declare global {
@@ -16,6 +17,7 @@ interface Note {
   transcript: string;
   notes: string;
   timestamp: Date;
+  isEditing?: boolean;
 }
 
 export default function Home() {
@@ -30,6 +32,7 @@ export default function Home() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>();
+  const [editingNote, setEditingNote] = useState<string>('');
 
   const startAudioAnalysis = async () => {
     try {
@@ -134,6 +137,47 @@ export default function Home() {
     }
   };
 
+  const handleEditNote = (note: Note) => {
+    if (note.isEditing) {
+      // Only update if changes were made
+      const hasChanges = editingNote !== note.notes;
+      const updatedTimestamp = hasChanges ? new Date() : note.timestamp;
+
+      // Save the edit
+      setSavedNotes(prev => prev.map(n => 
+        n.id === note.id 
+          ? { 
+              ...n, 
+              notes: editingNote, 
+              isEditing: false,
+              timestamp: updatedTimestamp
+            }
+          : n
+      ));
+      setSelectedNote(prev => prev?.id === note.id 
+        ? { 
+            ...note, 
+            notes: editingNote, 
+            isEditing: false,
+            timestamp: updatedTimestamp
+          }
+        : prev
+      );
+    } else {
+      // Start editing
+      setEditingNote(note.notes);
+      setSavedNotes(prev => prev.map(n => 
+        n.id === note.id 
+          ? { ...n, isEditing: true }
+          : n
+      ));
+      setSelectedNote(prev => prev?.id === note.id 
+        ? { ...note, isEditing: true }
+        : prev
+      );
+    }
+  };
+
   useEffect(() => {
     return () => {
       stopAudioAnalysis();
@@ -143,63 +187,97 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
       {/* Two Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Left Column - Current Note */}
-        <div className="space-y-4 overflow-y-auto">
-          <h2 className="text-xl font-semibold text-gray-800 sticky top-0 bg-gray-50 py-2">
+        <div className="flex flex-col items-center">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
             Current Session
           </h2>
           
-          {transcript && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Live Transcript</h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{transcript}</p>
-            </div>
-          )}
-
-          {isProcessing && (
-            <div className="text-center text-gray-600 py-4">
-              <p>Generating notes...</p>
-            </div>
-          )}
-
-          {selectedNote && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-20">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-medium text-gray-700">Generated Notes</h3>
-                <span className="text-sm text-gray-500">
-                  {new Date(selectedNote.timestamp).toLocaleString()}
-                </span>
+          <div className="w-full space-y-4">
+            {transcript && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h3 className="text-lg font-medium text-gray-700 mb-2">Live Transcript</h3>
+                <p className="text-gray-600 whitespace-pre-wrap">{transcript}</p>
               </div>
-              <p className="text-gray-600 whitespace-pre-wrap">{selectedNote.notes}</p>
-            </div>
-          )}
+            )}
+
+            {isProcessing && (
+              <div className="text-center text-gray-600 py-4">
+                <p>Generating notes...</p>
+              </div>
+            )}
+
+            {selectedNote && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-20">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-medium text-gray-700">Generated Notes</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {new Date(selectedNote.timestamp).toLocaleString()}
+                    </span>
+                    <button
+                      onClick={() => handleEditNote(selectedNote)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      {selectedNote.isEditing ? (
+                        <CheckIcon className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <PencilIcon className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {selectedNote.isEditing ? (
+                  <textarea
+                    value={editingNote}
+                    onChange={(e) => setEditingNote(e.target.value)}
+                    className="w-full h-64 p-4 border rounded-md font-mono text-base 
+                      text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 
+                      focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Edit your notes here... Markdown is supported"
+                  />
+                ) : (
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown>{selectedNote.notes}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column - Saved Notes */}
-        <div className="space-y-4 overflow-y-auto">
-          <h2 className="text-xl font-semibold text-gray-800 sticky top-0 bg-gray-50 py-2">
+        <div className="flex flex-col items-center">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
             Previous Notes
           </h2>
-          <div className="space-y-3 mb-20">
-            {savedNotes.map((note) => (
-              <button
-                key={note.id}
-                onClick={() => setSelectedNote(note)}
-                className={`w-full text-left p-4 rounded-lg border transition-all ${
-                  selectedNote?.id === note.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 bg-white hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-gray-500">
-                    {new Date(note.timestamp).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-gray-600 line-clamp-3">{note.notes}</p>
-              </button>
-            ))}
+          
+          <div className="w-full space-y-2 mb-20">
+            {savedNotes.map((note) => {
+              // Extract title from markdown content
+              const titleMatch = note.notes.match(/^#\s(.+)$/m);
+              const title = titleMatch ? titleMatch[1] : 'Untitled Note';
+              
+              return (
+                <button
+                  key={note.id}
+                  onClick={() => setSelectedNote(note)}
+                  className={`w-full text-left p-3 rounded-lg border transition-all ${
+                    selectedNote?.id === note.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700">{title}</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(note.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

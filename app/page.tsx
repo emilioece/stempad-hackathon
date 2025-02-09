@@ -34,7 +34,7 @@ export default function Home() {
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number>(0);
   const [editingNote, setEditingNote] = useState<string>('');
 
   const startAudioAnalysis = async () => {

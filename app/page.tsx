@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { PlayIcon, StopIcon, MicrophoneIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/solid';
 import ReactMarkdown from 'react-markdown';
+import Navbar from './components/Navbar';
+import { useUser } from '@auth0/nextjs-auth0/client';
 
 // Add these type declarations at the top of the file
 declare global {
@@ -21,6 +23,7 @@ interface Note {
 }
 
 export default function Home() {
+  const { user, isLoading } = useUser();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [aiNotes, setAiNotes] = useState('');
@@ -103,7 +106,7 @@ export default function Home() {
   };
 
   const stopRecording = async () => {
-    if (recognitionRef.current) {
+    if (recognitionRef.current && user?.sub) {
       recognitionRef.current.stop();
       stopAudioAnalysis();
       setIsRecording(false);
@@ -119,16 +122,28 @@ export default function Home() {
         });
         
         const data = await response.json();
-        const newNote: Note = {
+        const newNote = {
           id: Date.now().toString(),
           transcript,
           notes: data.notes,
           timestamp: new Date(),
         };
-        
-        setAiNotes(data.notes);
-        setSavedNotes(prev => [newNote, ...prev]);
-        setSelectedNote(newNote);
+
+        // Save to database
+        const dbResponse = await fetch('/api/notes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...newNote,
+            userId: user.sub,
+          }),
+        });
+
+        const savedNote = await dbResponse.json();
+        setSavedNotes(prev => [savedNote, ...prev]);
+        setSelectedNote(savedNote);
       } catch (error) {
         console.error('Error generating notes:', error);
       } finally {
@@ -184,142 +199,157 @@ export default function Home() {
     };
   }, []);
 
+  // Load notes from database when user logs in
+  useEffect(() => {
+    if (user?.sub) {
+      fetch(`/api/notes?userId=${user.sub}`)
+        .then(res => res.json())
+        .then(data => {
+          setSavedNotes(data);
+        });
+    }
+  }, [user]);
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
-      {/* Two Column Layout */}
-      <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-12">
-        {/* Left Column - Current Note */}
-        <div className="flex flex-col items-center">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-            Current Session
-          </h2>
-          
-          <div className="w-full space-y-4">
-            {transcript && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Live Transcript</h3>
-                <p className="text-gray-600 whitespace-pre-wrap">{transcript}</p>
-              </div>
-            )}
-
-            {isProcessing && (
-              <div className="text-center text-gray-600 py-4">
-                <p>Generating notes...</p>
-              </div>
-            )}
-
-            {selectedNote && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-20">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-lg font-medium text-gray-700">Generated Notes</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
-                      {new Date(selectedNote.timestamp).toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => handleEditNote(selectedNote)}
-                      className="p-1 rounded-full hover:bg-gray-100"
-                    >
-                      {selectedNote.isEditing ? (
-                        <CheckIcon className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <PencilIcon className="w-5 h-5 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar isSignedIn={false} />
+      
+      <div className="min-h-screen bg-gray-50 pb-32">
+        {/* Two Column Layout */}
+        <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Left Column - Current Note */}
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+              Current Session
+            </h2>
+            
+            <div className="w-full space-y-4">
+              {transcript && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">Live Transcript</h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">{transcript}</p>
                 </div>
-                {selectedNote.isEditing ? (
-                  <textarea
-                    value={editingNote}
-                    onChange={(e) => setEditingNote(e.target.value)}
-                    className="w-full h-64 p-4 border rounded-md font-mono text-base 
-                      text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 
-                      focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Edit your notes here... Markdown is supported"
-                  />
+              )}
+
+              {isProcessing && (
+                <div className="text-center text-gray-600 py-4">
+                  <p>Generating notes...</p>
+                </div>
+              )}
+
+              {selectedNote && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-20">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-medium text-gray-700">Generated Notes</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">
+                        {new Date(selectedNote.timestamp).toLocaleString()}
+                      </span>
+                      <button
+                        onClick={() => handleEditNote(selectedNote)}
+                        className="p-1 rounded-full hover:bg-gray-100"
+                      >
+                        {selectedNote.isEditing ? (
+                          <CheckIcon className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <PencilIcon className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {selectedNote.isEditing ? (
+                    <textarea
+                      value={editingNote}
+                      onChange={(e) => setEditingNote(e.target.value)}
+                      className="w-full h-64 p-4 border rounded-md font-mono text-base 
+                        text-gray-800 bg-gray-50 focus:outline-none focus:ring-2 
+                        focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Edit your notes here... Markdown is supported"
+                    />
+                  ) : (
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown>{selectedNote.notes}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Saved Notes */}
+          <div className="flex flex-col items-center">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+              Previous Notes
+            </h2>
+            
+            <div className="w-full space-y-2 mb-20">
+              {savedNotes.map((note) => {
+                // Extract title from markdown content
+                const titleMatch = note.notes.match(/^#\s(.+)$/m);
+                const title = titleMatch ? titleMatch[1] : 'Untitled Note';
+                
+                return (
+                  <button
+                    key={note.id}
+                    onClick={() => setSelectedNote(note)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selectedNote?.id === note.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">{title}</span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(note.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Fixed Recording Module */}
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+            <div className="flex items-center gap-4 bg-gray-50/90 p-4 rounded-full shadow-sm">
+              <button 
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-sm
+                  ${isRecording 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-blue-500 hover:bg-blue-600'
+                  } text-white`}
+              >
+                {isRecording ? (
+                  <StopIcon className="w-7 h-7 text-white" />
                 ) : (
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{selectedNote.notes}</ReactMarkdown>
+                  <MicrophoneIcon className="w-7 h-7 text-white" />
+                )}
+              </button>
+
+              <div className="w-64 h-10 bg-gray-200 rounded-full overflow-hidden flex items-center px-3">
+                {isRecording ? (
+                  <div className="flex items-end gap-[2px] h-full w-full">
+                    {getAudioBars(audioLevel).map((height, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 bg-blue-500 transition-all duration-75"
+                        style={{
+                          height: `${height}%`,
+                          opacity: height > 0 ? 0.3 + (height / 100) * 0.7 : 0.2
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-sm w-full text-center">
+                    Click microphone to start recording
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column - Saved Notes */}
-        <div className="flex flex-col items-center">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-            Previous Notes
-          </h2>
-          
-          <div className="w-full space-y-2 mb-20">
-            {savedNotes.map((note) => {
-              // Extract title from markdown content
-              const titleMatch = note.notes.match(/^#\s(.+)$/m);
-              const title = titleMatch ? titleMatch[1] : 'Untitled Note';
-              
-              return (
-                <button
-                  key={note.id}
-                  onClick={() => setSelectedNote(note)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    selectedNote?.id === note.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">{title}</span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(note.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Fixed Recording Module */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
-          <div className="flex items-center gap-4 bg-gray-50/90 p-4 rounded-full shadow-sm">
-            <button 
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-sm
-                ${isRecording 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-blue-500 hover:bg-blue-600'
-                } text-white`}
-            >
-              {isRecording ? (
-                <StopIcon className="w-7 h-7 text-white" />
-              ) : (
-                <MicrophoneIcon className="w-7 h-7 text-white" />
-              )}
-            </button>
-
-            <div className="w-64 h-10 bg-gray-200 rounded-full overflow-hidden flex items-center px-3">
-              {isRecording ? (
-                <div className="flex items-end gap-[2px] h-full w-full">
-                  {getAudioBars(audioLevel).map((height, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-blue-500 transition-all duration-75"
-                      style={{
-                        height: `${height}%`,
-                        opacity: height > 0 ? 0.3 + (height / 100) * 0.7 : 0.2
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-400 text-sm w-full text-center">
-                  Click microphone to start recording
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { PlayIcon, StopIcon, MicrophoneIcon, PencilIcon, CheckIcon, TrashIcon } 
 import ReactMarkdown from 'react-markdown';
 import Navbar from './components/Navbar';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 declare global {
   interface Window {
@@ -18,6 +19,7 @@ interface Note {
   transcript: string;
   notes: string;
   timestamp: Date;
+  createdAt: Date;
   isEditing?: boolean;
 }
 
@@ -34,6 +36,8 @@ export default function Home() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>(0);
   const [editingNote, setEditingNote] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const startAudioAnalysis = async () => {
     try {
@@ -131,6 +135,7 @@ export default function Home() {
           transcript,
           notes: data.notes,
           timestamp: new Date(),
+          createdAt: new Date(),
         };
 
         // Save to database
@@ -169,7 +174,8 @@ export default function Home() {
               ...n, 
               notes: editingNote, 
               isEditing: false,
-              timestamp: updatedTimestamp
+              timestamp: updatedTimestamp,
+              createdAt: updatedTimestamp
             }
           : n
       ));
@@ -178,7 +184,8 @@ export default function Home() {
             ...note, 
             notes: editingNote, 
             isEditing: false,
-            timestamp: updatedTimestamp
+            timestamp: updatedTimestamp,
+            createdAt: updatedTimestamp
           }
         : prev
       );
@@ -215,6 +222,37 @@ export default function Home() {
       }
     }
   };
+
+  const handleSearch = async (query: string) => {
+    if (!query.trim()) {
+      // Reset to all notes when search is cleared
+      if (user?.sub) {
+        const response = await fetch(`/api/notes?userId=${user.sub}`);
+        const allNotes = await response.json();
+        setSavedNotes(allNotes);
+      }
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const results = await response.json();
+      setSavedNotes(results); // This will only show matching notes
+    } catch (error) {
+      console.error('Error searching notes:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     return () => {
@@ -381,6 +419,27 @@ export default function Home() {
                 Previous Notes
               </h2>
               
+              {/* Add search input */}
+              <div className="w-full mb-4 relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search your notes..."
+                    className="w-full px-4 py-2 pl-10 pr-4 rounded-lg border border-gray-200 
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                      text-gray-900 placeholder-gray-500"
+                  />
+                  <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                </div>
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
+
               <div className="w-full space-y-2 mb-20">
                 {savedNotes.map((note) => {
                   // Extract title from markdown content

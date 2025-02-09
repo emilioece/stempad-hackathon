@@ -6,7 +6,6 @@ import ReactMarkdown from 'react-markdown';
 import Navbar from './components/Navbar';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
-// Add these type declarations at the top of the file
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -26,7 +25,6 @@ export default function Home() {
   const { user, isLoading } = useUser();
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [aiNotes, setAiNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [savedNotes, setSavedNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);

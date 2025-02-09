@@ -4,12 +4,6 @@
 
 DeepSearch is an innovative application designed to transform your office hours into structured notes. It leverages advanced audio recording and AI-powered transcription to ensure you never miss important details from your meetings again.
 
-## Features
-
-- **Real-time Recording**: Capture every detail with our advanced audio recording system.
-- **AI-Powered Notes**: Automatically generate structured, markdown-formatted notes.
-- **Easy Organization**: Edit, organize, and access your notes from anywhere.
-
 ## How It Works
 
 1. **Real-time Recording**: DeepSearch uses your device's microphone to record audio in real-time. The audio is then processed to ensure clarity and accuracy.

@@ -16,7 +16,7 @@ DeepSearch is an innovative application designed to transform your office hours 
 2. **AI-Powered Transcription**: Our AI algorithms transcribe the recorded audio into text, generating structured notes that are easy to read and understand.
 3. **Note Management**: Users can edit, organize, and access their notes through a user-friendly interface.
 
-## Technology Stack
+## Tech Stack
 
 DeepSearch is built using the following technologies:
 
@@ -34,3 +34,4 @@ DeepSearch is built using the following technologies:
 
 - **APIs**:
   - Web Speech API: For real-time speech recognition and transcription.
+  - OpenAI API: Used to generate notes

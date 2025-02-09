@@ -18,10 +18,9 @@ export async function POST(request: Request) {
     }
 
     const prompt = `Given the current transcript: ${transcript}, 
-    return me some notes.
+    return me some notes and give it a title. Always write the title with one markdown #.
     Do not include the original transcript in your return.
-    Also only summarize what is given based in the transcript. 
-    Adding details you know are for sure right and relevant is fine, but keep it on point.`;
+    Also only summarize what is given based in the transcript.`
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [

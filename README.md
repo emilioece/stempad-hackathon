@@ -1,5 +1,7 @@
 # DeepSearch
 
+[Presentation](https://www.canva.com/design/DAGeoHVcXpM/6Ycf79mtHZgA5Inv9c1egw/edit?utm_content=DAGeoHVcXpM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+
 ## Overview
 
 DeepSearch is an innovative application designed to transform your office hours into structured notes. It leverages advanced audio recording and AI-powered transcription to ensure you never miss important details from your meetings again.
